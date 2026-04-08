@@ -1,0 +1,46 @@
+Areeyoka John 
+
+Correctness Test Suite (tests/)
+
+Build:
+  make all            # builds memgrind + all tests
+  make t_split        # builds a single test
+Run (examples):
+  ./t_split
+  ./t_coalesce
+  ./t_oom 
+  ./t_invalid_notmalloc  
+  ./t_invalid_notstart  
+  ./t_invalid_doublefree  
+  ./t_leak  
+
+Descriptions: 
+
+t_split
+This test performs two small allocations back-to-back. The purpose is to verify that the allocator correctly splits a larger free block into two smaller allocated chunks. If splitting is not implemented properly, the second allocation would fail even though enough space exists in the heap.
+
+t_coalesce
+This test allocates multiple chunks to fill the heap, frees them all, and then attempts one large allocation. The purpose is to verify that adjacent freed blocks are properly coalesced into one larger free chunk. Without coalescing, the allocator would see only small fragmented blocks and fail the large allocation.
+
+t_oom
+This test calls malloc(5000) on a 4096-byte heap. The purpose is to verify correct out-of-memory handling. The expected behavior is that malloc returns NULL and prints the required error message including the file and line number. This ensures the allocator fails safely and reports errors correctly when a request exceeds available memory.
+
+t_invalid_notmalloc
+This test attempts to free a stack address that was not allocated by mymalloc. The purpose is to verify detection of invalid pointers that do not belong to the heap. This ensures myfree properly validates pointer bounds and prevents undefined behavior.
+
+t_invalid_notstart
+This test allocates a block and attempts to free (p + 1), which is not the start of a valid allocation. The purpose is to verify detection of pointers that do not point to the beginning of an allocated payload. This ensures only valid allocation starts can be freed and prevents corruption of heap metadata.
+
+t_invalid_doublefree
+This test allocates memory and frees it twice. The purpose is to verify detection of double free errors. This ensures that the allocator correctly tracks allocation state and prevents freeing already-freed memory.
+
+t_leak
+This test allocates memory and intentionally does not free it. The purpose is to verify that leak_check correctly detects and reports memory leaks at program exit. This ensures allocated blocks still marked as allocated are counted and reported accurately.
+
+Memgrind Task 4 and 5 Explanation
+
+Task 4 – Linked List Fragmentation Test
+Task 4 allocates N nodes using malloc(sizeof(node)) and links them into a singly linked list. Every other node is then freed while maintaining correct pointer links between the remaining nodes. New nodes are allocated until the total number of nodes returns to N, forcing the allocator to reuse freed space. Finally, the entire list is freed to ensure no memory leaks remain. This task stresses structured allocations, creates fragmentation, and tests block reuse and coalescing behavior under repeated allocations and frees.
+
+Task 5 – Binary Tree Allocation and Deallocation
+Task 5 allocates N nodes and links them into a complete binary tree structure using array indexing. Leaf nodes are freed first, followed by internal parent nodes (freed in reverse order), creating fragmentation in a structured pattern. The test then allocates N nodes again to force reuse of freed memory. Finally, all newly allocated nodes are freed. This task stresses allocation of structured data types, tests fragmentation handling through non-sequential frees, and verifies allocator stability under non-trivial workloads.
